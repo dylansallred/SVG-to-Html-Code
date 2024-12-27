@@ -1,6 +1,6 @@
 # SVG ⇄ Code Converter
 
-[Live Demo](https://dylansallred.github.io/SVG-to-Html-Code/svgtocode.html)
+[Live Demo](https://dylansallred.github.io/SVG-to-Html-Code/SVG-to-Html-Code..html)
 
 This application allows you to convert SVG files to HTML code and vice versa. It provides a user-friendly interface to upload SVG files, edit their properties, and preview the results in real-time.
 
