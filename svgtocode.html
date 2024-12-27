@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG ⇄ Code Converter</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --accent: #4CAF50;
+            --accent-hover: #45a049;
+            --border: #333333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 1rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .converter-container {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.5rem;
+        }
+
+        .drop-zone, .code-editor {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            height: 300px;
+            position: relative;
+            transition: all 0.3s ease;
+            overflow: auto;
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: #2a2a2a;
+        }
+
+        .drop-zone-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+        }
+
+        .drop-zone-content p {
+            margin-bottom: 1rem;
+        }
+
+        .code-editor textarea {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'Monaco', 'Consolas', monospace;
+            resize: none;
+            outline: none;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .btn, .choose-file-btn {
+            background: var(--accent);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+        }
+
+        .btn:hover, .choose-file-btn:hover {
+            background: var(--bg-primary);
+            border: 2px solid var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn:active, .choose-file-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(76, 175, 80, 0.2);
+        }
+
+        .btn svg {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn:hover svg {
+            transform: scale(1.15) rotate(-5deg);
+        }
+
+        .svg-controls, .preview-container {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 0.75rem;
+            min-height: 300px;
+            height: auto;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .svg-controls h2, .preview-container h2 {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            padding: 0 0.5rem;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            padding: 0.25rem;
+        }
+
+        .control-group {
+            background: var(--bg-primary);
+            padding: 0.5rem;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-group .value-display {
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .control-group input[type="color"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 28px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .control-group input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .control-group input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 6px;
+        }
+
+        .control-group input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 3px;
+            background: var(--bg-secondary);
+            outline: none;
+            margin: 0;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid var(--bg-primary);
+            box-shadow: 0 0 0 4px var(--bg-primary), 0 0 0 5px var(--accent);
+            transition: all 0.2s ease;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+            transform: scale(1.1);
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            min-height: calc(100% - 3rem);
+        }
+
+        .preview-item {
+            background: #fff;
+            border-radius: 6px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 200px;
+            height: auto;
+            background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+                linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+                linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        .preview-label {
+            color: var(--bg-primary);
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        #svgPreview, #svgPreviewLarge {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 180px;
+            height: auto;
+        }
+
+        #svgPreviewLarge svg {
+            width: 196px !important;
+            height: 196px !important;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .checkbox-wrapper label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: var(--accent);
+        }
+
+        /* Disabled states */
+        .btn:disabled, .btn:disabled:hover {
+            background: var(--bg-secondary);
+            border-color: var(--border);
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .control-group input[type="color"]:disabled,
+        .control-group input[type="range"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .control-group.disabled,
+        .checkbox-wrapper.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* Media queries */
+        @media screen and (max-width: 768px) {
+            .container { padding: 0.5rem; }
+            h1 { font-size: 2rem; }
+            .subtitle { font-size: 1rem; }
+            .converter-container { grid-template-columns: 1fr; gap: 1rem; }
+            .drop-zone, .code-editor { height: 200px; }
+            .controls-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+            .preview-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+            .preview-item { min-height: 150px; }
+            .button-container { flex-direction: column; gap: 0.75rem; }
+            .btn { width: 100%; justify-content: center; }
+            .svg-controls, .preview-container { padding: 0.5rem; }
+            .control-group { padding: 0.5rem; }
+            .control-group label { font-size: 0.75rem; }
+            .control-group .value-display { font-size: 0.7rem; }
+            .checkbox-wrapper { margin-top: 0.15rem; }
+            .checkbox-wrapper label { font-size: 0.7rem; }
+            .control-group input[type="range"] { height: 3px; margin: 0.25rem 0; }
+            .control-group input[type="color"] { height: 24px; }
+            .svg-controls h2, .preview-container h2 { font-size: 0.9rem; margin-bottom: 0.5rem; }
+        }
+
+        @media screen and (max-width: 380px) {
+            h1 { font-size: 1.75rem; }
+            .subtitle { font-size: 0.9rem; }
+            .drop-zone, .code-editor { height: 180px; }
+            .preview-item { min-height: 130px; }
+            .controls-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SVG ⇄ Code</h1>
+            <p class="subtitle">Convert SVG image to code and vice versa</p>
+        </header>
+
+        <div class="converter-container">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-content">
+                    <p style="margin-bottom: 1rem;">Drop SVG file here or</p>
+                    <label class="choose-file-btn">
+                        Choose File
+                        <input type="file" class="file-input" id="fileInput" accept=".svg">
+                    </label>
+                </div>
+            </div>
+
+            <div class="code-editor">
+                <textarea id="codeEditor" placeholder="Paste SVG code here..."></textarea>
+            </div>
+
+            <div class="svg-controls">
+                <h2>SVG Controls</h2>
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label>Fill Color</label>
+                        <input type="color" id="fillColor" value="#000000">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="hasFill">
+                            <label for="hasFill">Enable fill</label>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>Stroke Color</label>
+                        <input type="color" id="strokeColor" value="#000000">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="hasStroke" checked>
+                            <label for="hasStroke">Enable stroke</label>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>Stroke Width</label>
+                        <input type="range" id="strokeWidth" min="0" max="20" value="1">
+                        <span class="value-display">1px</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Size (px)</label>
+                        <input type="range" id="scale" min="24" max="256" step="1" value="24">
+                        <span class="value-display">24px</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Rotation</label>
+                        <input type="range" id="rotation" min="0" max="360" value="0">
+                        <span class="value-display">0°</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Opacity</label>
+                        <input type="range" id="opacity" min="0" max="1" step="0.1" value="1">
+                        <span class="value-display">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-container">
+                <h2>SVG Preview</h2>
+                <div class="preview-grid">
+                    <div class="preview-item">
+                        <span class="preview-label">Actual Size (<span id="actualSizeLabel">24px</span>)</span>
+                        <div id="svgPreview"></div>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Reference View (196px)</span>
+                        <div id="svgPreviewLarge"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button class="btn" id="downloadBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" style="transform: rotate(0deg); opacity: 1;">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="#ffffff" stroke-width="1"/>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="#ffffff" stroke-width="1"/>
+                </svg>
+                Download SVG
+            </button>
+            <button class="btn" id="copyBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" style="transform: rotate(0deg); opacity: 1;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#FFFFFF" stroke-width="1"/>
+                    <line x1="12" y1="15" x2="12" y2="3" stroke="#FFFFFF" stroke-width="1"/>
+                    <polyline points="7 10 12 15 17 10" stroke="#FFFFFF" stroke-width="1"/>
+                </svg>
+                Copy code
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const codeEditor = document.getElementById('codeEditor');
+        const svgPreview = document.getElementById('svgPreview');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const fillColorInput = document.getElementById('fillColor');
+        const strokeColorInput = document.getElementById('strokeColor');
+        const strokeWidthInput = document.getElementById('strokeWidth');
+        const scaleInput = document.getElementById('scale');
+        const rotationInput = document.getElementById('rotation');
+        const opacityInput = document.getElementById('opacity');
+        const hasFillCheckbox = document.getElementById('hasFill');
+        const hasStrokeCheckbox = document.getElementById('hasStroke');
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'image/svg+xml') {
+                handleFile(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+
+        function updateSizeControl() {
+            const scaleInput = document.getElementById('scale');
+            scaleInput.min = "24";    // Minimum 24px
+            scaleInput.max = "256";   // Maximum 256px
+            scaleInput.value = "24";  // Default 24px
+            scaleInput.step = "1";
+        }
+
+        function cleanSVG(svgCode) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgCode, 'image/svg+xml');
+            const svg = doc.querySelector('svg');
+            
+            if (!svg) {
+                console.error('No SVG element found in input');
+                return svgCode;
+            }
+
+            // Create a new clean SVG
+            const newSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            
+            // Get original viewBox or calculate from width/height
+            let viewBox = svg.getAttribute('viewBox');
+            if (!viewBox) {
+                const width = parseFloat(svg.getAttribute('width')) || 128;
+                const height = parseFloat(svg.getAttribute('height')) || 128;
+                viewBox = `0 0 ${width} ${height}`;
+                console.log('Created viewBox:', viewBox);
+            }
+
+            // Set default size while maintaining aspect ratio
+            const defaultSize = 128; // Larger default size
+            const [, , vbWidth, vbHeight] = viewBox.split(' ').map(Number);
+            const aspect = vbWidth / vbHeight;
+            
+            let width = defaultSize;
+            let height = defaultSize;
+            
+            if (aspect > 1) {
+                height = width / aspect;
+            } else {
+                width = height * aspect;
+            }
+
+            // Set essential attributes with standardized size
+            const essentialAttrs = {
+                'xmlns': 'http://www.w3.org/2000/svg',
+                'width': width.toString(),
+                'height': height.toString(),
+                'viewBox': viewBox,
+                'fill': 'none'
+            };
+
+            Object.entries(essentialAttrs).forEach(([attr, value]) => {
+                newSvg.setAttribute(attr, value);
+            });
+
+            // Clean and transfer all SVG elements (not just paths)
+            const validElements = ['path', 'circle', 'rect', 'ellipse', 'line', 'polyline', 'polygon'];
+            validElements.forEach(elementType => {
+                svg.querySelectorAll(elementType).forEach(oldElement => {
+                    const newElement = document.createElementNS('http://www.w3.org/2000/svg', elementType);
+                    
+                    // Copy all attributes
+                    Array.from(oldElement.attributes).forEach(attr => {
+                        if (!attr.name.startsWith('data-')) {
+                            newElement.setAttribute(attr.name, attr.value);
+                        }
+                    });
+
+                    // Ensure stroke attributes if missing
+                    if (!newElement.getAttribute('stroke')) {
+                        newElement.setAttribute('stroke', '#000000');
+                    }
+                    if (!newElement.getAttribute('stroke-width')) {
+                        newElement.setAttribute('stroke-width', '1.5');
+                    }
+
+                    newSvg.appendChild(newElement);
+                });
+            });
+
+            const result = newSvg.outerHTML
+                .replace(/><(path|circle|rect|ellipse|line|polyline|polygon)/g, '>\n    <$1')
+                .replace('></svg>', '>\n</svg>')
+                .trim();
+
+            return result;
+        }
+
+        function validateSVG(svgCode) {
+            return svgCode.includes('data-') || 
+                   svgCode.includes('&quot;') || 
+                   svgCode.includes('style=');
+        }
+
+        function isValidSVG(svgCode) {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(svgCode, 'image/svg+xml');
+                
+                // Check for parsing errors
+                const parserErrors = doc.getElementsByTagName('parsererror');
+                if (parserErrors.length > 0) {
+                    return false;
+                }
+
+                // Check if there's an SVG element
+                const svg = doc.querySelector('svg');
+                return svg !== null;
+            } catch (err) {
+                return false;
+            }
+        }
+
+        function updateButtonStates() {
+            const content = codeEditor.value.trim();
+            const hasValidContent = content.length > 0 && isValidSVG(content);
+            
+            // Show/hide containers
+            document.querySelector('.svg-controls').classList.toggle('hidden', !hasValidContent);
+            document.querySelector('.preview-container').classList.toggle('hidden', !hasValidContent);
+            document.querySelector('.button-container').classList.toggle('hidden', !hasValidContent);
+            
+            if (hasValidContent) {
+                const controls = [
+                    fillColorInput,
+                    strokeColorInput,
+                    strokeWidthInput,
+                    scaleInput,
+                    rotationInput,
+                    opacityInput
+                ];
+                
+                controls.forEach(control => {
+                    control.disabled = false;
+                    control.closest('.control-group').classList.remove('disabled');
+                });
+
+                // Enable both checkboxes
+                const checkboxWrappers = [
+                    hasFillCheckbox.closest('.checkbox-wrapper'),
+                    hasStrokeCheckbox.closest('.checkbox-wrapper')
+                ];
+                
+                checkboxWrappers.forEach(wrapper => {
+                    wrapper.classList.remove('disabled');
+                    wrapper.querySelector('input').disabled = false;
+                });
+            }
+        }
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const svgCode = e.target.result;
+                const cleanedCode = cleanSVG(svgCode);
+                codeEditor.value = cleanedCode;
+                
+                // Check if the SVG has any fills and set checkbox accordingly
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(cleanedCode, 'image/svg+xml');
+                const elements = doc.querySelectorAll('path, rect, circle, ellipse, line, polyline, polygon');
+                const hasFill = Array.from(elements).some(el => {
+                    const fill = el.getAttribute('fill');
+                    return fill && fill !== 'none';
+                });
+                hasFillCheckbox.checked = hasFill;
+                
+                updatePreview(cleanedCode);
+                updateButtonStates();
+            };
+            reader.readAsText(file);
+        }
+
+        codeEditor.addEventListener('input', () => {
+            updatePreview(codeEditor.value);
+            updateButtonStates();
+        });
+
+        function updatePreview(svgCode) {
+            if (!isValidSVG(svgCode)) {
+                svgPreview.innerHTML = '';
+                document.getElementById('svgPreviewLarge').innerHTML = '';
+                return;
+            }
+
+            // Update both preview containers
+            svgPreview.innerHTML = svgCode;
+            document.getElementById('svgPreviewLarge').innerHTML = svgCode;
+            
+            if (svgCode) {
+                updateSVGProperties();
+            }
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            const svgCode = codeEditor.value;
+            if (svgCode) {
+                const blob = new Blob([svgCode], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'image.svg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(codeEditor.value);
+                copyBtn.innerHTML = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" style="transform: rotate(0deg); opacity: 1;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#FFFFFF" stroke-width="1"/>
+                        <line x1="12" y1="15" x2="12" y2="3" stroke="#FFFFFF" stroke-width="1"/>
+                        <polyline points="7 10 12 15 17 10" stroke="#FFFFFF" stroke-width="1"/>
+                    </svg>
+                    Copy code`;
+                }, 2000);
+            } catch (err) {
+                // Error handling removed
+            }
+        });
+
+        function updateSVGProperties() {
+            const svg = svgPreview.querySelector('svg');
+            const svgLarge = document.getElementById('svgPreviewLarge').querySelector('svg');
+            
+            if (!svg || !svgLarge) {
+                return;
+            }
+
+            // Get the original code only once when first loading the SVG
+            if (!svg.hasAttribute('data-original-code')) {
+                const cleanedOriginalCode = cleanSVG(codeEditor.value);
+                svg.setAttribute('data-original-code', cleanedOriginalCode);
+            }
+
+            // Create a new SVG element for the transformed version
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svg.getAttribute('data-original-code'), 'image/svg+xml');
+            const transformedSvg = doc.querySelector('svg');
+
+            if (!transformedSvg) return;
+
+            // Get the original viewBox values
+            const viewBox = transformedSvg.getAttribute('viewBox');
+            const [, , vbWidth, vbHeight] = viewBox.split(' ').map(Number);
+            const aspect = vbWidth / vbHeight;
+
+            // Apply size in pixels while maintaining aspect ratio
+            const targetSize = parseFloat(scaleInput.value);
+            let width = targetSize;
+            let height = targetSize;
+            
+            if (aspect > 1) {
+                height = width / aspect;
+            } else {
+                width = height * aspect;
+            }
+
+            // Update SVG dimensions
+            transformedSvg.setAttribute('width', width.toString());
+            transformedSvg.setAttribute('height', height.toString());
+
+            // Apply other transformations
+            const rotation = rotationInput.value;
+            const opacity = opacityInput.value;
+
+            transformedSvg.style.transform = `rotate(${rotation}deg)`;
+            transformedSvg.style.opacity = opacity;
+
+            // Update colors and stroke width for all shape elements
+            const shapeElements = transformedSvg.querySelectorAll('path, rect, circle, ellipse, line, polyline, polygon');
+            shapeElements.forEach(element => {
+                // Handle fill color based on checkbox state
+                if (hasFillCheckbox.checked) {
+                    element.setAttribute('fill', fillColorInput.value);
+                } else {
+                    element.setAttribute('fill', 'none');
+                }
+                
+                // Handle stroke based on checkbox state
+                if (hasStrokeCheckbox.checked) {
+                    element.setAttribute('stroke', strokeColorInput.value);
+                    element.setAttribute('stroke-width', strokeWidthInput.value);
+                } else {
+                    element.setAttribute('stroke', 'none');
+                    element.setAttribute('stroke-width', '0');
+                }
+            });
+
+            // Update both previews
+            svgPreview.innerHTML = transformedSvg.outerHTML;
+            
+            // Create large preview version
+            const largeSvg = transformedSvg.cloneNode(true);
+            document.getElementById('svgPreviewLarge').innerHTML = largeSvg.outerHTML;
+
+            // Update value displays
+            document.querySelector('#scale + .value-display').textContent = `${Math.round(width)}px`;
+            document.querySelector('#rotation + .value-display').textContent = `${rotation}°`;
+            document.querySelector('#opacity + .value-display').textContent = `${Math.round(opacity * 100)}%`;
+            document.querySelector('#strokeWidth + .value-display').textContent = `${strokeWidthInput.value}px`;
+            document.getElementById('actualSizeLabel').textContent = `${Math.round(width)}px`;
+
+            // Update code editor with the transformed SVG
+            codeEditor.value = transformedSvg.outerHTML;
+        }
+
+        [fillColorInput, strokeColorInput, strokeWidthInput, scaleInput, rotationInput, opacityInput, hasFillCheckbox, hasStrokeCheckbox].forEach(input => {
+            input.addEventListener('input', updateSVGProperties);
+        });
+
+        // Call updateButtonStates initially
+        updateButtonStates();
+    </script>
+</body>
+</html>
